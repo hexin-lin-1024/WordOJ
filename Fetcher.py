@@ -1,7 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
-import json
-import random
+from urllib.parse import quote
 
 
 class WordFetcher():
@@ -32,7 +31,7 @@ class WordFetcher():
             return {"Chinese": Chinese, "English": English, "Spelling": word}
 
         self.provider["Bing"] = Bing
-        
+
         # 剑桥词典
         def Cambridge(word):
             r = requests.get("https://dictionary.cambridge.org/zhs/%E8%AF%8D%E5%85%B8/%E8%8B%B1%E8%AF%AD-%E6%B1%89%E8%AF%AD-%E7%AE%80%E4%BD%93/" + word + "?q=" + word,
@@ -66,9 +65,6 @@ class WordFetcher():
         self.defaultProviderName = list(self.provider.keys())[0]
         self.defaultProvider = self.provider[self.defaultProviderName]
 
-    def src(self):
-        return self.defaultProviderName
-
     def fetch(self, word):
         return self.defaultProvider(word)
 
@@ -79,8 +75,32 @@ class WordFetcher():
     def listProvider(self):
         return list(self.provider.keys())
 
-class Phrase:
+
+class PhraseFetcher:
     def __init__(self):
         self.ua = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36"}
         self.provider = {}
+
+        def Linggle(phrase):
+            phrase = quote(phrase)
+            res = requests.get("https://www.linggle.com/api/ngram/" +
+                               phrase, headers=self.ua).json()["ngrams"]
+            sum = 0
+            for i in res:
+                sum += i[1]
+            return [{"Phrase": i[0], "Frequency": str(format(i[1]/sum*100, '.2f')) + "%", "Count":i[1]} for i in res]
+        self.provider["Linggle"] = Linggle
+
+        self.defaultProvider = Linggle
+        self.defaultProviderName = "Linggle"
+
+    def fetch(self, phrase):
+        return self.defaultProvider(phrase)
+
+    def setProvider(self, provider):
+        self.defaultProvider = self.provider[provider]
+        self.defaultProviderName = provider
+
+    def listProvider(self):
+        return list(self.provider.keys())
